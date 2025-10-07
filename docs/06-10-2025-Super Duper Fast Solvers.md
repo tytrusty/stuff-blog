@@ -18,10 +18,10 @@
 
 Song of the week: [Things In Life](https://www.youtube.com/watch?v=O1p3wXe0MCw)
 
-There has recently been a lot of fast solvers for physics based animation claiming tremendeous speedups over more traditional methods. I wanted to talk about it because, while these methods present incredible results and the systems they build around them represent incredible feats of engineering, they often come a bit short in showing the "why" in why they get that speedup. Is it just impressive engineering, or is there something fundamental about their method that enables this speedup (I would argue it's a bit of both :)).
+There has recently been a lot of fast solvers for physics based animation claiming tremendeous speedups over more traditional methods. I wanted to talk about it because while these methods present amazing results and the systems they build around them big feats of engineering, they often come a bit short in showing the "why" in why they get that speedup. Is it just impressive engineering, or is there something fundamental about their method that enables this speedup (I would argue it's a bit of both)?
 
 ### Some Context: Optimization-based Integration
-Before I throw all these awesome papers under the bus, I'd like to give some context. Lately in physics-based animation it's becoming normalized to take a "variational approach" in which each time step physics are advanced by solving a minimization:
+Before I throw everyone under the bus, I'd like to give some context. Lately in physics-based animation it's becoming normalized to take a "variational approach" in which each time step physics are advanced by solving a minimization:
 $$
 x^{t+1} = \arg\min_x E(x)
 $$
@@ -196,7 +196,7 @@ Here we see the perturbation basis for three vertices in this rod. So we can see
 They then use this basis to update the per-coordinate solve to include the stiffness and gradient contributions from the complementary displacement basis. Their per-coordinate solve is:
 
 $$
-\delta x_i = (H_{ii} + U_{ic}^T H_{cc} U_{ic})^{-1} (g_i + U_{ic}^T g_c)
+\delta x_i = -(H_{ii} + U_{ic}^T H_{cc} U_{ic})^{-1} (g_i + U_{ic}^T g_c)
 $$
 
 where $g_c$ is the gradient of the energy function with respect to the *complementary* DOFS, and the other terms are as defined above. Let's see how the Jacobi variant of JGS2 performs in our model problem, compared to Gradient and Coordinate (Jacobi) descent:
