@@ -1,6 +1,21 @@
 
 ## 06-10-2025 Super Fast Solvers
 
+<script>
+  window.MathJax = {
+    tex: {
+      inlineMath: [['$', '$'], ['\\(', '\\)']],
+      displayMath: [['$$', '$$'], ['\\[', '\\]']]
+    },
+    svg: { fontCache: 'global' }
+  };
+</script>
+
+<script id="MathJax-script" async
+  src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js">
+</script>
+
+
 Song of the week: [Things In Life](https://www.youtube.com/watch?v=O1p3wXe0MCw)
 
 There has recently been a lot of fast solvers for physics based animation offering tremendeous speedups compared to more traditional. I wanted to talk about it because, while these methods present incredible results and the systems they build around them represent incredible feats of engineering, they often come a bit short in showing the "why" in why they get that speedup. Is it just impressive engineering, or is there something fundamental about their method that enables this speedup (I would argue it's a bit of both :)).
@@ -196,3 +211,5 @@ This is essentially the same cost as the JGS2, just that each coordinate solve n
 <p align="center">
   <img src="../images/convergence-subspace.png" alt="Subspace (Jacobi) Convergence" />
 </p>
+
+Here we see the number of iterations to converge is 1 in our new method. This is expected as the problem we're solving is quadratic, so the subspace we're using is "optimal" in this case.
