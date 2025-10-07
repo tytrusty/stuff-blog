@@ -134,7 +134,7 @@ $$
 where $H$ is the Hessian of the energy, and $g$ the gradient. With Newton's being a second order method, it finds a solution in one iteration. This is what the solution to a prescribed rigthward displacement on the right end of the rod looks like:
 
 <p align="center">
-  <img src="../images/rod_deformed.png" alt="Configuration" />
+  <img src="images//rod_deformed.png" alt="Configuration" />
 </p>
 
 Pretty simple. The "Rest" line shows the initial configuration of the rod (the $X$ positions). The "Deformed" line shows the final configuration of the rod (the $x$ positions) after the solve. The red dots show the fixed ends of the rod.
@@ -142,13 +142,13 @@ Pretty simple. The "Rest" line shows the initial configuration of the rod (the $
  Let's first look at gradient descent plus coordinate descent Jacobi and Gauss-Seidel variants.
  
  <p align="center">
-  <img src="../images/convergence.png" alt="Gradient Descent Convergence" />
+  <img src="images//convergence.png" alt="Gradient Descent Convergence" />
 </p>
 Here we see the number of iterations require to converge to a set tolerance of $10^{-6}$ as we increase the number of vertices in the rod. We see that the number of iterations scales linearly with the number of vertices.
 
 The time to converge for each of these methods is related to the number of vertices as they all essentially do local work per-iterate. The initial gradient is large and on a single vertex at the right end, and the optimization algorithms will essentially have to propogate this gradient to the left end of the rod. You can see this sort of message passing effect when visualizing the coordinate descent progress:
 <p align="center">
-  <img src="../images/gauss_seidel_animation_detailed.gif" alt="Coordinate Descent Progress" />
+  <img src="images//gauss_seidel_animation_detailed.gif" alt="Coordinate Descent Progress" />
 </p>
 Note how the displacements propogate quickly near the right end, but many iterations are needed to evenly distribute the displacements across the rod. 
 
@@ -173,7 +173,7 @@ where $I$ is the identity matrix corresponding to the DOFs for a single coordina
 
 From this system they build a per-coordinate subspace basis $U_i = -H_{cc}^{-1} H_{ic}^T \in \mathbb{R}^{n-1}$. Let's visualize this basis on our model problem:
 <p align="center">
-  <img src="../images/schur-basis.png" alt="Schur Subspace Bases" />
+  <img src="images//schur-basis.png" alt="Schur Subspace Bases" />
 </p>
 Here we see the perturbation basis for three vertices in this rod. So we can see this recovers a solution to our problem given prescribed displacements at each vertex and (0 at the fixed ends in this case to make sure the bases are compatible with our original problem's boundary conditions). They then use this basis to update the per-coordinate solve to include the stiffness and gradient contributions from the complementary displacement basis. Their per-coordinate solve is then:
 
@@ -182,7 +182,7 @@ $$
 $$
 where $g_c$ is the gradient of the energy function with respect to the *complementary* DOFS, and the other terms are as defined above. Let's see how the Jacobi variant of JGS2 performs in our model problem, compared to Gradient and Coordinate (Jacobi) descent:
 <p align="center">
-  <img src="../images/convergence-jgs2.png" alt="JGS2 Convergence" />
+  <img src="images//convergence-jgs2.png" alt="JGS2 Convergence" />
 </p>
 This looks a bit better, but the overall convergence rate is still similar to coordinate descent. 
 
@@ -216,7 +216,7 @@ $$
 This is essentially the same cost as the JGS2, but with the correct substiutions to account for varying subspace contributions.
 
 <p align="center">
-  <img src="../images/convergence-subspace.png" alt="Subspace (Jacobi) Convergence" />
+  <img src="images//convergence-subspace.png" alt="Subspace (Jacobi) Convergence" />
 </p>
 
 Here we see the number of iterations to converge is 1 in our new method. This is expected as the problem we're solving is quadratic, so the subspace we're using is "optimal" in this case.
