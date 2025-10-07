@@ -84,15 +84,19 @@ Most algorithms for PBA will lie between these two extremes, and try to offer so
 In the past year or so there's been quite a lot of research on fast solvers that take a coordinate-descent-type approach to solving the optimization problem. Coordinate descent works by solving a different optimization problem, one for each (or a subset of) the coordinates in $x$. This can be done in a highly parallelizable way, and if you choose a small enough subset of coordinates, the per-coordinate solve cost can be suitable for a single thread in a GPU kernel. The ability for these methods to leverage GPUs is the big reason we've seen a lot of attention in these type of methods, and without a doubt have produced fast solvers for PBA.
 
 So for example, if we have $x = [x_1, x_2, x_3]^T$, we can solve a set of optimization problems:
+
 $$
 x_1^{t+1} = \arg\min_{x_1} E(x_1, x_2^t, x_3^t)
 $$
+
 $$
 x_2^{t+1} = \arg\min_{x_2} E(x_1^t, x_2, x_3^t)
 $$
+
 $$
 x_3^{t+1} = \arg\min_{x_3} E(x_1^t, x_2^t, x_3)
 $$
+
 This is a Jacobi-like approach allowing us to solve for each coordinate independently. If we instead solve for them sequentially, replacing $x_i^t$ with $x_{i-1}^{t+1}$ we get a Gauss-Seidal-like approach. Some works do this instead. The Gauss-Seidel variant will yield better convergence, but is trickier to parallelize. The pseudocode for the Jacobi variant looks like:
 ```
 x = xt # some initial guess
@@ -223,7 +227,9 @@ $$
 \delta x_c = -\tilde{H}_{cc}^{-1}(U_{ic}^T g_c + U_{ic}^T H_{ic}^T \delta x_i),
 $$ 
 
-where $\tilde{H}_{cc} = U_{ic}^T H_{cc} U_{ic}$. Substituting this expression for $\delta x_c$ back into the first equation, we obtain:
+where
+$$\tilde{H}_{cc} = U_{ic}^T H_{cc} U_{ic}.$$ 
+Substituting this expression for $\delta x_c$ back into the first equation, we obtain:
 
 $$
 \delta x_i = -(H_{ii} - H_{ic} U_{ic} \tilde{H}_{cc}^{-1} U_{ic}^T H_{ic}^T)^{-1} (g_i - H_{ic} U_{ic} \tilde{H}_{cc}^{-1} g_c)
