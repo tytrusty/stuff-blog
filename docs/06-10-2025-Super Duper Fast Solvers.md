@@ -1,7 +1,7 @@
 
 ## 06-10-2025 Super Fast Solvers
 
-<script>
+<!-- <script>
   window.MathJax = {
     tex: {
       inlineMath: [['$', '$'], ['\\(', '\\)']],
@@ -13,7 +13,7 @@
 
 <script id="MathJax-script" async
   src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js">
-</script>
+</script> -->
 
 
 Song of the week: [Things In Life](https://www.youtube.com/watch?v=O1p3wXe0MCw)
@@ -46,9 +46,9 @@ So for example for the easiest case, gradient descent, we would have:
 x = xt # some initial guess
 step_size = 0.01 # some predetermined step size
 while not converged:
-    d = -gradient(x)
-    x = x + step_size * d
-    if ||d|| < tolerance:
+    g = gradient(x)
+    x = x - step_size * g
+    if ||g|| < tolerance:
         break
 return x
 ```
@@ -64,7 +64,7 @@ while not converged:
     d = -H^-1 * g
     alpha = line_search(x, d)
     x = x + d
-    if ||d|| < tolerance:
+    if ||g|| < tolerance:
         break
 return x
 ```
@@ -108,7 +108,7 @@ while not converged:
         g = gradient(xk, i)  # gradient ...
         d[i] = -H^-1 * g
     x = x + d
-    if ||d|| < tolerance:
+    if ||g|| < tolerance:
         break
 return x
 ```
@@ -195,9 +195,9 @@ $$
 
 where $g_c$ is the gradient of the energy function with respect to the *complementary* DOFS, and the other terms are as defined above. Let's see how the Jacobi variant of JGS2 performs in our model problem, compared to Gradient and Coordinate (Jacobi) descent:
 <p align="center">
-  <img src="images//convergence-jgs2.png" alt="JGS2 Convergence" />
+  <img src="images//convergence-jgs2-v2.png" alt="JGS2 Convergence" />
 </p>
-This looks a bit better, but the overall convergence rate is still similar to coordinate descent. 
+This looks a bit better, but the overall convergence rate is still similar to coordinate descent. Here the max iterations is 1000, which gradient descent always saturates.
 
 ## Something Even Better?
 
@@ -238,7 +238,41 @@ $$
 This is essentially the same cost as the JGS2, but with the correct substiutions to account for varying subspace contributions. The resulting method performs a schur-complement solver for each coordinate, and is called "Subspace (Jacobi)".
 
 <p align="center">
-  <img src="images//convergence-subspace.png" alt="Subspace (Jacobi) Convergence" />
+  <img src="images//convergence-subspace-v2.png" alt="Subspace (Jacobi) Convergence" />
 </p>
 
 Here we see the number of iterations to converge is 1 in our new method. This is expected as the problem we're solving is quadratic, so the subspace we're using is "optimal" in this case.
+
+So is this a perfect solution? Well let's look at some cases where the convergence will not be ideal.
+
+First, what happens if we use a more non-linear problem? Let's make our spring more nonlinear, defining the potential to be a Neohookean-type:
+
+$$
+\Psi_i = \frac{1}{2} k_i ((F_i - 1)^2 - \log(F_i))
+$$
+
+<p align="center">
+  <img src="images/convergence_neohookean.png" alt="Subspace (Jacobi) Convergence" />
+</p>
+
+Here we see the number of iterations slightly increases for our new version, but still only takes about 16 iterations to converge (several orders of magnitude faster than the others). We've included the Newton's method convergence for reference, which our method now slightly deviates from.
+
+Another way to make JGS2 and our Subspace method worse is to make the subspace lower quality. Previously I noted that our basis was made to be compatible with the 0-dirichlet boundary conditions (on the left and right ends). What happens if we don't do this? Let's first see what the new bases looks like:
+
+<p align="center">
+  <img src="images/schur-basis-no-bc.png" alt="Schur Subspace Bases" />
+</p>
+
+Note that at the 0-th and $(n-1)$-th vertices, the basis is not 0. This is because we're not enforcing the 0-dirichlet boundary conditions. Let's see how this affects the convergence of our methods:
+
+<p align="center">
+  <img src="images/convergence-breakdown.png" alt="Subspace (Jacobi) Convergence" />
+</p>
+
+Here we see that JGS2 completely breaks down, and fails to converge for every configuration. This can be seen as a symptom of extreme "undershooting", as JGS2 excessively dampens displacements at the boundary, preventing the displacements from ever propagating.
+
+Our Subspace (Jacobi) method sees worsened convergence, but still much faster than the other coordinate descent methods. The worsening convergence here underscores the important of high quality subspace bases for these type of methods.
+
+## Conclusion
+
+This was a quick overview of some strategies for coordinate descent in PBA. I'd be interested to see if the schur-complementy strategy I described above could be integrated in a real solver. With all the engineering tricks used in the other solvers, this approach should be significantly faster to converge than the others, and I'd hope it'll lead to more investigation of ideal subspace bases plus coordinate subsets.
