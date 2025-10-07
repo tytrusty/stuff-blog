@@ -1,5 +1,5 @@
 
-## Intro
+## 06-10-2025 Super Fast Solvers
 
 Song of the week: [Things In Life](https://www.youtube.com/watch?v=O1p3wXe0MCw)
 
@@ -130,3 +130,69 @@ Pretty simple. The "Rest" line shows the initial configuration of the rod (the $
   <img src="../images/convergence.png" alt="Gradient Descent Convergence" />
 </p>
 Here we see the number of iterations require to converge to a set tolerance of $10^{-6}$ as we increase the number of vertices in the rod. We see that the number of iterations scales linearly with the number of vertices.
+
+The time to converge for each of these methods is related to the number of vertices as they all essentially do local work per-iterate. The initial gradient is large and on a single vertex at the right end, and the optimization algorithms will essentially have to propogate this gradient to the left end of the rod. You can see this sort of message passing effect when visualizing the coordinate descent progress:
+<p align="center">
+  <img src="../images/gauss_seidel_animation_detailed.gif" alt="Coordinate Descent Progress" />
+</p>
+Note how the displacements propogate quickly near the right end, but many iterations are needed to evenly distribute the displacements across the rod. 
+
+## Something Better?
+Recently a paper called [JGS2 (Lan et al. 2025)](https://arxiv.org/abs/2506.06494) made a similar observation about these local methods. They largely target an effect they call "overshooting" in which local coordinate descent methods overshoot due to lack of awareness of the problem stiffness outside of the neighborhood of a single coordinate. They follow a similar coordinate descent approach in which for each coordinate they construct a subspace corresponding to displacement that would occur to a perturbation of the coordinate, keeping all others fixed. As a precomputation step, for each vertex they solve a block system of the form:
+$$
+\begin{bmatrix}
+H_{ii} & H_{ic} \\
+H_{ic}^T & H_{cc}
+\end{bmatrix}
+\begin{bmatrix}
+I \\
+U_{ic}
+\end{bmatrix}
+=
+\begin{bmatrix}
+\delta F_i \\
+0
+\end{bmatrix}
+$$
+where $I$ is the identity matrix corresponding to the DOFs for a single coordinate, $H_{ii}$ is the Hessian of the energy function with respect to the $i$-th coordinate, $H_{cc}$ is the Hessian of the energy function with respect to the *complementary* DOFS (all DOFs except the $i$-th), and $H_{ic}$ is the Hessian of the energy function with respect to the $i$-th coordinate and the *complementary* DOFS. $U_{ic}$ is the basis for the subspace of displacements that would occur to a unit perturbation of the $i$-th coordinate, $\delta F_i$ is the virtual force corresponding to this perturbation. 
+
+From this system they build a per-coordinate subspace basis $U_i = -H_{cc}^{-1} H_{ic}^T \in \mathbb{R}^{n-1}$. Let's visualize this basis on our model problem:
+<p align="center">
+  <img src="../images/schur-basis.png" alt="Schur Subspace Bases" />
+</p>
+Here we see the perturbation basis for three vertices in this rod. So we can see this recovers a solution to our problem given prescribed displacements at each vertex and (0 at the fixed ends in this case to make sure the bases are compatible with our original problem's boundary conditions). They then use this basis to update the per-coordinate solve to include the stiffness and gradient contributions from the complementary displacement basis. Their per-coordinate solve is then:
+
+$$
+\delta x_i = (H_{ii} + U_{ic}^T H_{cc} U_{ic})^{-1} (g_i + U_{ic}^T g_c)
+$$
+where $g_c$ is the gradient of the energy function with respect to the *complementary* DOFS, and the other terms are as defined above. Let's see how the Jacobi variant of JGS2 performs in our model problem, compared to Gradient and Coordinate (Jacobi) descent:
+<p align="center">
+  <img src="../images/convergence-jgs2.png" alt="JGS2 Convergence" />
+</p>
+This looks a bit better, but the overall convergence rate is still similar to coordinate descent. 
+
+## Something Even Better?
+
+JGS2 is a good improvement, but there is still clear room for better convergence. JGS2's displacement equation makes an assumption that the displacement of the complementary DOFS matches the displacement of the complementary DOFs from the unit perturbation. Therefore this can excessively dampen the displacements if the expected displacement of the individual DOFs is far from a unit perturbation. If we instead modify this and solve for both the complementary subspace's displacement plus the individual DOF's displacement this would basically give us "optimal" magnitude of dampening (solver will control the amplitude of the complementary displacement).
+
+This can be done by instead solving the coupled block system:
+$$
+\begin{bmatrix}
+H_{ii} & H_{ic} U_{ic} \\
+U_{ic}^T H_{ic}^T & U_{ic}^T H_{cc} U_{ic}
+\end{bmatrix}
+\begin{bmatrix}
+\delta x_i \\
+\delta x_c
+\end{bmatrix}
+=
+\begin{bmatrix}
+g_i \\
+U_{ic}^T g_c
+\end{bmatrix}
+$$
+This is essentially the same cost as the JGS2, just that each coordinate solve now solves 2*dof_per_vertex instead of 1. For our version of this method, we will call it "Subspace (Jacobi)". For the solve step, we only keep the displacement for $x_i$, and discard the displacement for $x_c$ (as those DOFs will receive their own displacements from their own solves).
+
+<p align="center">
+  <img src="../images/convergence-subspace.png" alt="Subspace (Jacobi) Convergence" />
+</p>
