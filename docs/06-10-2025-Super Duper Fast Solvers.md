@@ -223,7 +223,7 @@ $$
 \delta x_c = -\tilde{H}_{cc}^{-1}(U_{ic}^T g_c + U_{ic}^T H_{ic}^T \delta x_i),
 $$ 
 
-where $ \tilde{H}_{cc} = U_{ic}^T H_{cc} U_{ic} $, and substituting this into the first equation gives us:
+where $\tilde{H}_{cc} = U_{ic}^T H_{cc} U_{ic}$. Substituting this expression for $\delta x_c$ back into the first equation, we obtain:
 
 $$
 \delta x_i = -(H_{ii} - H_{ic} U_{ic} \tilde{H}_{cc}^{-1} U_{ic}^T H_{ic}^T)^{-1} (g_i - H_{ic} U_{ic} \tilde{H}_{cc}^{-1} g_c)
