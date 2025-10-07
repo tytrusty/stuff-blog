@@ -1,7 +1,7 @@
 
 ## 06-10-2025 Super Fast Solvers
 
-<!-- <script>
+<script>
   window.MathJax = {
     tex: {
       inlineMath: [['$', '$'], ['\\(', '\\)']],
@@ -13,7 +13,7 @@
 
 <script id="MathJax-script" async
   src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-svg.js">
-</script> -->
+</script>
 
 
 Song of the week: [Things In Life](https://www.youtube.com/watch?v=O1p3wXe0MCw)
