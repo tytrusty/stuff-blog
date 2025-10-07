@@ -18,7 +18,7 @@
 
 Song of the week: [Things In Life](https://www.youtube.com/watch?v=O1p3wXe0MCw)
 
-There has recently been a lot of fast solvers for physics based animation offering tremendeous speedups compared to more traditional. I wanted to talk about it because, while these methods present incredible results and the systems they build around them represent incredible feats of engineering, they often come a bit short in showing the "why" in why they get that speedup. Is it just impressive engineering, or is there something fundamental about their method that enables this speedup (I would argue it's a bit of both :)).
+There has recently been a lot of fast solvers for physics based animation claiming tremendeous speedups over more traditional methods. I wanted to talk about it because, while these methods present incredible results and the systems they build around them represent incredible feats of engineering, they often come a bit short in showing the "why" in why they get that speedup. Is it just impressive engineering, or is there something fundamental about their method that enables this speedup (I would argue it's a bit of both :)).
 
 ### Some Context: Optimization-based Integration
 Before I throw all these awesome papers under the bus, I'd like to give some context. Lately in physics-based animation it's becoming normalized to take a "variational approach" in which each time step physics are advanced by solving a minimization:
