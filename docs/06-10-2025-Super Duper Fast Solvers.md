@@ -201,12 +201,19 @@ U_{ic}^T H_{ic}^T & U_{ic}^T H_{cc} U_{ic}
 \delta x_c
 \end{bmatrix}
 =
-\begin{bmatrix}
+-\begin{bmatrix}
 g_i \\
 U_{ic}^T g_c
 \end{bmatrix}
 $$
-This is essentially the same cost as the JGS2, just that each coordinate solve now solves 2*dof_per_vertex instead of 1. For our version of this method, we will call it "Subspace (Jacobi)". For the solve step, we only keep the displacement for $x_i$, and discard the displacement for $x_c$ (as those DOFs will receive their own displacements from their own solves).
+
+Solving first for $\delta x_c = -\tilde{H}_{cc}^{-1}(U_{ic}^T g_c + U_{ic}^T H_{ic}^T \delta x_i)$ where $\tilde{H}_{cc} = U_{ic}^T H_{cc} U_{ic}$, and substituting this into the first equation gives us:
+
+$$
+\delta x_i = (H_{ii} + H_{ic} U_{ic} \tilde{H}_{cc}^{-1} U_{ic}^T H_{ic}^T)^{-1} (g_i + H_{ic} U_{ic} \tilde{H}_{cc}^{-1} g_c)
+$$
+
+This is essentially the same cost as the JGS2, but with the correct substiutions to account for varying subspace contributions.
 
 <p align="center">
   <img src="../images/convergence-subspace.png" alt="Subspace (Jacobi) Convergence" />
