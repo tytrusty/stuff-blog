@@ -66,7 +66,9 @@ Most algorithms for PBA will lie between these two extremes, and try to offer so
 
 
 ## Coordinate Descent
-In the past year or so there's been quite a lot of research on fast solvers that take a coordinate-descent-type approach to solving the optimization problem. Coordinate descent works by solving a different optimizaiton problem, one for each (or a subset of) the coordinates in $x$. So for example, if we have $x = [x_1, x_2, x_3]^T$, we can solve a set of optimization problems:
+In the past year or so there's been quite a lot of research on fast solvers that take a coordinate-descent-type approach to solving the optimization problem. Coordinate descent works by solving a different optimization problem, one for each (or a subset of) the coordinates in $x$. This can be done in a highly parallelizable way, and if you choose a small enough subset of coordinates, the per-coordinate solve cost can be suitable for a single thread in a GPU kernel. The ability for these methods to leverage GPUs is the big reason we've seen a lot of attention in these type of methods, and without a doubt have produced fast solvers for PBA.
+
+So for example, if we have $x = [x_1, x_2, x_3]^T$, we can solve a set of optimization problems:
 $$
 x_1^{t+1} = \arg\min_{x_1} E(x_1, x_2^t, x_3^t)
 $$
@@ -76,14 +78,15 @@ $$
 $$
 x_3^{t+1} = \arg\min_{x_3} E(x_1^t, x_2^t, x_3)
 $$
-This is a gauss-seidal-like approach as we solve for each coordinate in a sequential order, updating the other coordinates with the previous iterate. If we instead solve for them all simulataneously, we get jacobi-like method, which is easier to parallelize but converges slower. The pseudocode for the Gauss-Seidal variant could look like:
+This is a Jacobi-like approach allowing us to solve for each coordinate independently. If we instead solve for them sequentially, replacing $x_i^t$ with $x_{i-1}^{t+1}$ we get a Gauss-Seidal-like approach. Some works do this instead. The Gauss-Seidel variant will yield better convergence, but is trickier to parallelize. The pseudocode for the Jacobi variant looks like:
 ```
 x = xt # some initial guess
 while not converged:
     d = zeros(n)
+    xk = x
     for i in 1:n:
-        H = hessian(x, i)   # hessian of the energy function with respect to the i-th coordinate
-        g = gradient(x, i)  # gradient ...
+        H = hessian(xk, i)   # hessian of the energy function with respect to the i-th coordinate
+        g = gradient(xk, i)  # gradient ...
         d[i] = -H^-1 * g
     x = x + d
     if ||d|| < tolerance:
@@ -116,9 +119,14 @@ $$
 where $H$ is the Hessian of the energy, and $g$ the gradient. With Newton's being a second order method, it finds a solution in one iteration. This is what the solution to a prescribed rigthward displacement on the right end of the rod looks like:
 
 <p align="center">
-  <img src="../images/rod_deformed.png" alt="Newton's Method" />
+  <img src="../images/rod_deformed.png" alt="Configuration" />
 </p>
 
 Pretty simple. The "Rest" line shows the initial configuration of the rod (the $X$ positions). The "Deformed" line shows the final configuration of the rod (the $x$ positions) after the solve. The red dots show the fixed ends of the rod.
 
- Let's first look at gradient descent. 
+ Let's first look at gradient descent plus coordinate descent Jacobi and Gauss-Seidel variants.
+ 
+ <p align="center">
+  <img src="../images/convergence.png" alt="Gradient Descent Convergence" />
+</p>
+Here we see the number of iterations require to converge to a set tolerance of $10^{-6}$ as we increase the number of vertices in the rod. We see that the number of iterations scales linearly with the number of vertices.
