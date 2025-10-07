@@ -207,7 +207,12 @@ This looks a bit better, but the overall convergence rate is still similar to co
 
 ## Something Even Better?
 
-JGS2 is a good improvement, but there is still clear room for better convergence. JGS2's displacement equation makes an assumption that the displacement of the complementary DOFS matches the displacement of the complementary DOFs from the unit perturbation. Therefore this can excessively dampen the displacements if the expected displacement of the individual DOFs is far from a unit perturbation. If we instead modify this and solve for both the complementary subspace's displacement plus the individual DOF's displacement this would basically give us "optimal" magnitude of damping (solver will control the amplitude of the complementary displacement).
+JGS2 produces an improvement over gradient and coordinate descent, but maybe we can do something better?
+JGS2's displacement equation makes an assumption that the displacement on the complementary DOF will always be $U_{ic}^T \delta x_i$, which may not always be the optimal displacements for this complementary basis.
+
+If for example, the ideal amplitude of the complementary subspace is significantly smaller than the $\delta x$, then JGS2 will excessively damp the displacements.
+
+If we instead modify this and solve for both the complementary subspace's displacement plus the individual DOF's displacement this would basically give us "optimal" magnitude of damping (solver will control the amplitude of the complementary displacement).
 
 This can be done by instead solving the coupled block system:
 
