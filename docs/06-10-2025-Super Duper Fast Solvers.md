@@ -55,7 +55,7 @@ return x
 Where here we just move along gradient directions, $-\nabla E(x)$ by some predetermined step size until the gradient is below some tolerance, indicating that we've converged to some local minimum of $E(x)$.
 
 ### Newton's Method
-Well as we'd expect, gradient descent generally requires many iterations to converge, especially for the stiff problems we run into in elastic simulations. Gradient comes from linearizing the energy function around the guess at each step, so we are only locally solving a linear approximation to $E(x)$. Newton's method, instead solves a quadratic approximation to $E(x)$ at each step, resulting in a much faster convergence rate. The pseudocode for this looks like:
+Gradient descent generally requires many iterations to converge, especially for the stiff problems we run into in elastic simulations. Gradient descent comes from linearizing the energy function around the guess at each step, so we are only locally solving a linear approximation to $E(x)$. Newton's method, instead solves a quadratic approximation to $E(x)$ at each step, resulting in a much faster convergence rate. The pseudocode for this looks like:
 ```
 x = xt # some initial guess
 while not converged:
@@ -68,7 +68,7 @@ while not converged:
         break
 return x
 ```
-So that now the descent direction is computed by solving a linear system $Hd = -g$. Computing the inverse of the Hessian effectively solves for the "ideal" step size to multiply each entry of the gradient by (ideal in the sense that it minimizes the quadratic approximation to $E(x)$). This has the added cost though of now requiring Hessian evaluation and inverse at each step, which can be far too costly if we're looking for real-time performance.
+So that now the descent direction is computed by solving a linear system $Hd = -g$. Computing the inverse of the Hessian effectively solves for the "ideal" step size to multiply each entry of the gradient by (ideal in the sense that it minimizes the quadratic approximation to $E(x)$). This has the added cost though of now requiring Hessian evaluation and inverse at each iteration, which can be far too costly if we're looking for real-time performance.
 
 Also in the above we use line search to determine the step size, which is a quick-and-dirty way to ensure that the steps we take are still reducing the energy. A second order method is still imperfect and especially for the kinda stiff problems in PBA, generally require line search for reliable convergence. Line search tries to find the optimal step size $\alpha$ to minimize the energy given our decent direction:
 $$
@@ -97,7 +97,7 @@ $$
 x_3^{t+1} = \arg\min_{x_3} E(x_1^t, x_2^t, x_3)
 $$
 
-This is a Jacobi-like approach allowing us to solve for each coordinate independently. If we instead solve for them sequentially, replacing $x_i^t$ with $x_{i-1}^{t+1}$ we get a Gauss-Seidal-like approach. Some works do this instead. The Gauss-Seidel variant will yield better convergence, but is trickier to parallelize. The pseudocode for the Jacobi variant looks like:
+This is a Jacobi-like approach allowing us to solve for each coordinate independently. If we instead solve for them sequentially, replacing $x_i^t$ with $x_{i}^{t+1}$ (where $i$ is a previously solved coordinate) we get a Gauss-Seidal-like approach. Some works do this instead. The Gauss-Seidel variant will yield better convergence, but is trickier to parallelize. The pseudocode for the Jacobi variant looks like:
 ```
 x = xt # some initial guess
 while not converged:
@@ -117,13 +117,13 @@ Above we compute the update for each coordinate in a sequential order, and then 
 ## A Model Problem
 So now we should have a rough grasp of some different ways to solve optimization time stepping in PBA. To do some basic evaluation, let's consider a simple model problem. A 1D elastic rod with fixed ends, and a prescribed displacement at one of the ends.
 
-We a rod with $n$ vertices, and $n-1$ elements. Each element has a length $l_i$ and a stiffness $k_i$. We define a deformation gradient $F_i$ for each element as:
+We have a rod with $n$ vertices, and $n-1$ elements. Each element has a length $l_i$ and a stiffness $k_i$. We define a deformation gradient $F_i$ for each element as:
 
 $$
 F_i = \frac{x_{i+1} - x_i}{X_{i+1} - X_i}
 $$
 
-where $x_i$ is the position of the $i$-th vertex, and $X_i$ is the initial position of the $i$-th vertex. This describes the deformation of a segment relative to its initial length. With $F$ we can define the elastic energy density for each element as:
+where $x_i$ is the deformed position of the $i$-th vertex, and $X_i$ is its initial position. This describes the deformation of a segment relative to its initial length. With $F$ we can define the elastic energy density for each element as:
 
 $$
 \Psi_i = \frac{1}{2} k_i (F_i - 1)^2
@@ -135,10 +135,10 @@ $$
 E(x) = \sum_{i=1}^{n-1} \Psi_i
 $$
 
-Note that here the energy is quadratic in $x$, so the exact solution to our optimization problem is
+Note that here this particular energy is quadratic in $x$, so the exact solution to our optimization problem is
 
 $$
-x = x_0 + H^{-1} g
+x = x_0 - H^{-1} g
 $$
 
 where $H$ is the Hessian of the energy, and $g$ the gradient. With Newton's being a second order method, it finds a solution in one iteration. This is what the solution to a prescribed rigthward displacement on the right end of the rod looks like:
@@ -154,7 +154,9 @@ Pretty simple. The "Rest" line shows the initial configuration of the rod (the $
  <p align="center">
   <img src="images//convergence.png" alt="Gradient Descent Convergence" />
 </p>
-Here we see the number of iterations require to converge to a set tolerance of $10^{-6}$ as we increase the number of vertices in the rod. We see that the number of iterations scales linearly with the number of vertices.
+Here we see the number of iterations require to converge to a set tolerance of
+$$ 10^{-6} $$
+as we increase the number of vertices in the rod. We see that the number of iterations scales linearly with the number of vertices.
 
 The time to converge for each of these methods is related to the number of vertices as they all essentially do local work per-iterate. The initial gradient is large and on a single vertex at the right end, and the optimization algorithms will essentially have to propogate this gradient to the left end of the rod. You can see this sort of message passing effect when visualizing the coordinate descent progress:
 <p align="center">
@@ -163,7 +165,9 @@ The time to converge for each of these methods is related to the number of verti
 Note how the displacements propogate quickly near the right end, but many iterations are needed to evenly distribute the displacements across the rod. 
 
 ## Something Better?
-Recently a paper called [JGS2 (Lan et al. 2025)](https://arxiv.org/abs/2506.06494) made a similar observation about these local methods. They largely target an effect they call "overshooting" in which local coordinate descent methods overshoot due to lack of awareness of the problem stiffness outside of the neighborhood of a single coordinate. They follow a similar coordinate descent approach in which for each coordinate they construct a subspace corresponding to displacement that would occur to a perturbation of the coordinate, keeping all others fixed. As a precomputation step, for each vertex they solve a block system of the form:
+Recently a paper called [JGS2 (Lan et al. 2025)](https://arxiv.org/abs/2506.06494) made a similar observation about these local methods. They largely target an effect they call "overshooting" in which local coordinate descent methods overshoot due to lack of awareness of the problem stiffness outside of the neighborhood of a single coordinate.
+
+To attempt to remedy this, they construct a subspace corresponding to displacement that would occur to a perturbation of the coordinate, keeping all others fixed. As a precomputation step, for each vertex they solve a block system of the form:
 
 $$
 \begin{bmatrix}
@@ -181,13 +185,15 @@ U_{ic}
 \end{bmatrix}
 $$
 
-where $I$ is the identity matrix corresponding to the DOFs for a single coordinate, $H_{ii}$ is the Hessian of the energy function with respect to the $i$-th coordinate, $H_{cc}$ is the Hessian of the energy function with respect to the *complementary* DOFS (all DOFs except the $i$-th), and $H_{ic}$ is the Hessian of the energy function with respect to the $i$-th coordinate and the *complementary* DOFS. $U_{ic}$ is the basis for the subspace of displacements that would occur to a unit perturbation of the $i$-th coordinate, $\delta F_i$ is the virtual force corresponding to this perturbation. 
+where $I$ is the identity matrix corresponding to the DOFs for a single coordinate, $H_{ii}$ is the Hessian of the energy function with respect to the $i$-th coordinate, $H_{cc}$ is the Hessian of the energy function with respect to the *complementary* DOFS (all DOFs except the $i$-th), and $H_{ic}$ is the Hessian of the energy function with respect to the $i$-th coordinate and the *complementary* DOFS. $U_{ic}$ is the basis for the subspace of displacements that would occur to a unit perturbation of the $i$-th coordinate, and finally $\delta F_i$ is the virtual force corresponding to this perturbation. 
 
 From this system they build a per-coordinate subspace basis $U_i = -H_{cc}^{-1} H_{ic}^T \in \mathbb{R}^{n-1}$. Let's visualize this basis on our model problem:
 <p align="center">
   <img src="images//schur-basis.png" alt="Schur Subspace Bases" />
 </p>
-Here we see the perturbation basis for three vertices in this rod. So we can see this recovers a solution to our problem given prescribed displacements at each vertex and (0 at the fixed ends in this case to make sure the bases are compatible with our original problem's boundary conditions). They then use this basis to update the per-coordinate solve to include the stiffness and gradient contributions from the complementary displacement basis. Their per-coordinate solve is then:
+Here we see the perturbation basis for three vertices in this rod. So we can see this recovers a solution to our problem given prescribed displacements at each vertex and (0 at the fixed ends in this case to make sure the bases are compatible with our original problem's boundary conditions).
+
+They then use this basis to update the per-coordinate solve to include the stiffness and gradient contributions from the complementary displacement basis. Their per-coordinate solve is:
 
 $$
 \delta x_i = (H_{ii} + U_{ic}^T H_{cc} U_{ic})^{-1} (g_i + U_{ic}^T g_c)
@@ -201,7 +207,7 @@ This looks a bit better, but the overall convergence rate is still similar to co
 
 ## Something Even Better?
 
-JGS2 is a good improvement, but there is still clear room for better convergence. JGS2's displacement equation makes an assumption that the displacement of the complementary DOFS matches the displacement of the complementary DOFs from the unit perturbation. Therefore this can excessively dampen the displacements if the expected displacement of the individual DOFs is far from a unit perturbation. If we instead modify this and solve for both the complementary subspace's displacement plus the individual DOF's displacement this would basically give us "optimal" magnitude of dampening (solver will control the amplitude of the complementary displacement).
+JGS2 is a good improvement, but there is still clear room for better convergence. JGS2's displacement equation makes an assumption that the displacement of the complementary DOFS matches the displacement of the complementary DOFs from the unit perturbation. Therefore this can excessively dampen the displacements if the expected displacement of the individual DOFs is far from a unit perturbation. If we instead modify this and solve for both the complementary subspace's displacement plus the individual DOF's displacement this would basically give us "optimal" magnitude of damping (solver will control the amplitude of the complementary displacement).
 
 This can be done by instead solving the coupled block system:
 
@@ -255,7 +261,7 @@ $$
   <img src="images/convergence_neohookean.png" alt="Subspace (Jacobi) Convergence" />
 </p>
 
-Here we see the number of iterations slightly increases for our new version, but still only takes about 16 iterations to converge (several orders of magnitude faster than the others). We've included the Newton's method convergence for reference, which our method now slightly deviates from.
+Here we see the number of iterations slightly increases for our new version, but still only takes about 20 iterations to converge (several orders of magnitude faster than the others). We've included the Newton's method convergence for reference, which our method now slightly deviates from.
 
 Another way to make JGS2 and our Subspace method worse is to make the subspace lower quality. Previously I noted that our basis was made to be compatible with the 0-dirichlet boundary conditions (on the left and right ends). What happens if we don't do this? Let's first see what the new bases looks like:
 
